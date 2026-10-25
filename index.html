@@ -2,77 +2,108 @@
 <html lang="ko">
 <head>
 <base target="_top">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>날개달기 조교방</title>
-<meta name="theme-color" content="#a7bccf">
+<meta name="theme-color" content="#a8dcd7">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="조교방">
 <meta name="mobile-web-app-capable" content="yes">
 <style>
-/* 카톡 모양: 하늘빛 대화방, 내 말풍선은 노랑, 남의 말풍선은 하양. 할 일과 원장님 화면은 위에서 덮는 하얀 판 */
+/* 카톡 모양 + AI 교무실 현황판 색(10-25 「ai 교무실 색감 써 줘」): 민트 바닥 무늬, 민트 나무 간판, 칠판색 출퇴근 줄,
+   내 말풍선 연민트, 남의 말풍선 하양, 확인 부탁은 분홍 테두리. 글꼴은 현황판과 같은 내일은맑음(본문), 뉴트로감성(제목) */
+@font-face { font-family: "NalgaeBody"; src: url("fonts/tt-regular.woff") format("woff"); font-weight: 400 500; font-display: swap; }
+@font-face { font-family: "NalgaeBody"; src: url("fonts/tt-bold.woff") format("woff"); font-weight: 600 800; font-display: swap; }
+@font-face { font-family: "NalgaeTitle"; src: url("fonts/newtro.woff") format("woff"); font-display: swap; }
 :root {
-  --room: #b2c7da; --top: #a7bccf; --me: #fee500; --other: #ffffff; --fg: #191919; --muted: #55606b;
-  --line: #d9dee3; --panel: #ffffff; --soft: #f4f6f8; --accent: #2b6b52; --done: #2f7d4f; --warn: #b26a00; --warn-soft: #fff4e0;
+  --room: #eaf7f5; --dot: #d6efec; --top: #a8dcd7; --wood-dark: #7fc4be; --me: #e1f3f1; --other: #ffffff; --fg: #24403e; --muted: #5b817d;
+  --line: #d3ece9; --panel: #ffffff; --soft: #f1f9f8; --accent: #3e7a76; --mint: #a8dcd7; --mint-soft: #e1f3f1; --mint-ink: #2e6b66;
+  --board: #2e6b66; --chalk-text: #f4fbfa; --chalk: #c47a2c; --chalk-soft: #fdf3e6;
+  --done: #2f7d55; --warn: #b23a4a; --warn-soft: #fbe4e8; --pink-soft: #fbe4e8;
+  --font-body: "NalgaeBody", "Noto Sans KR", "Apple SD Gothic Neo", system-ui, sans-serif; --font-title: "NalgaeTitle", "Noto Sans KR", sans-serif;
   color-scheme: light;
 }
 * { box-sizing: border-box; }
 html, body { margin: 0; height: 100%; background: var(--room); color: var(--fg);
-  font-family: -apple-system, "Apple SD Gothic Neo", "Noto Sans KR", "Malgun Gothic", system-ui, sans-serif; font-size: 15px; line-height: 1.5; }
+  font-family: var(--font-body); font-size: 15px; line-height: 1.5; }
 button { font: inherit; cursor: pointer; }
 button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .app { display: flex; flex-direction: column; height: 100dvh; max-width: 720px; margin: 0 auto; }
-.top { display: flex; align-items: center; gap: 8px; padding: 10px 14px; background: var(--top); position: sticky; top: 0; z-index: 2; }
-.top h1 { font-size: 1.05rem; margin: 0; flex: 1; }
-.top .me { font-size: 0.82rem; color: var(--muted); }
-.tbtn { position: relative; border: 0; background: #fff; border-radius: 999px; padding: 5px 13px; font-size: 0.88rem; font-weight: 600; }
-.cnt { position: absolute; top: -6px; right: -6px; min-width: 19px; height: 19px; padding: 0 5px; border-radius: 999px; background: #e5483d; color: #fff; font-size: 0.72rem; line-height: 19px; text-align: center; }
-.attbar { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; padding: 8px 14px; background: #eef3f7; font-size: 0.9rem; border-bottom: 1px solid var(--line); }
-.attbar b { font-variant-numeric: tabular-nums; }
-.attbar .warn { flex-basis: 100%; color: var(--warn); font-weight: 700; font-size: 0.85rem; }
+.top { display: flex; align-items: center; gap: 8px; padding: 10px 14px; background: var(--top); border-bottom: 3px solid var(--wood-dark); position: sticky; top: 0; z-index: 2; }
+.top h1 { font-family: var(--font-title); font-weight: 400; font-size: 1.3rem; margin: 0; flex: 1; color: var(--fg); }
+.top .me { font-size: 0.82rem; color: var(--mint-ink); }
+.tbtn { position: relative; border: 2px solid var(--wood-dark); background: #fff; color: var(--fg); border-radius: 999px; padding: 5px 13px; font-size: 0.88rem; font-weight: 600; }
+.cnt { position: absolute; top: -6px; right: -6px; min-width: 19px; height: 19px; padding: 0 5px; border-radius: 999px; background: var(--warn); color: #fff; font-size: 0.72rem; line-height: 19px; text-align: center; }
+.attbar { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; padding: 8px 14px; background: var(--board); color: var(--chalk-text); font-size: 0.9rem; border-bottom: 4px solid var(--top); }
+.attbar b { font-variant-numeric: tabular-nums; color: #fff6e3; }
+.attbar .warn { flex-basis: 100%; color: #ffd9a8; font-weight: 700; font-size: 0.85rem; }
 .pbtn { border: 0; border-radius: 10px; padding: 7px 16px; background: var(--accent); color: #fff; font-weight: 700; }
+.attbar .pbtn { background: var(--top); color: var(--fg); }
+.attbar .pbtn.alt { background: transparent; color: var(--chalk-text); border: 1px solid var(--chalk-text); }
 .pbtn.alt { background: #fff; color: var(--accent); border: 1px solid var(--accent); }
+.pbtn.pink { background: var(--warn); color: #fff; }
 .pbtn:disabled { opacity: 0.5; cursor: default; }
-.room { flex: 1; overflow-y: auto; padding: 10px 12px 16px; display: flex; flex-direction: column; gap: 6px; }
-.day { align-self: center; background: rgba(0,0,0,0.12); color: #fff; font-size: 0.78rem; padding: 3px 12px; border-radius: 999px; margin: 8px 0 4px; }
+.nav { display: flex; gap: 6px; padding: 8px 12px; background: #fff; border-bottom: 1px solid var(--line); }
+.nav button { position: relative; flex: 1; border: 2px solid var(--line); background: var(--soft); color: var(--muted); border-radius: 12px; padding: 7px 4px; font-weight: 700; }
+.nav button[aria-selected="true"] { background: var(--accent); border-color: var(--accent); color: #fff; }
+.page { flex: 1; overflow-y: auto; padding: 12px 12px 48px; display: grid; gap: 12px; align-content: start; background-color: var(--room);
+  background-image: radial-gradient(var(--dot) 2px, transparent 2.5px), radial-gradient(var(--dot) 1.5px, transparent 2px); background-size: 26px 26px, 26px 26px; background-position: 0 0, 13px 13px; }
+.tiles { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.tile { border: 2px solid var(--line); background: #fff; border-radius: 14px; padding: 8px 2px 6px; display: grid; justify-items: center; color: var(--fg); }
+.tile b { font-family: var(--font-title); font-weight: 400; font-size: 1.7rem; line-height: 1.1; }
+.tile span { font-size: 0.78rem; color: var(--muted); white-space: nowrap; }
+.tile.work { border-color: var(--top); background: var(--mint-soft); }
+.tile.done { border-color: #b9dcc7; background: #e4f3ea; }
+.tile.need { border-color: #e79aa8; background: var(--warn-soft); }
+.tile.on { box-shadow: 0 0 0 3px var(--accent); }
+.tags { display: inline-flex; gap: 6px; align-items: center; }
+.pill { font-size: 0.72rem; padding: 1px 8px; border-radius: 999px; font-weight: 700; white-space: nowrap; }
+.pill.wait { background: #eef2f1; color: var(--muted); }
+.pill.work { background: var(--mint-soft); color: var(--mint-ink); }
+.pill.done { background: #e4f3ea; color: var(--done); }
+.pill.need { background: var(--warn-soft); color: var(--warn); }
+.card.done { border-color: #b9dcc7; }
+.card.need { border-color: #e79aa8; }
+.card.work { border-color: var(--top); }
+.room { flex: 1; overflow-y: auto; padding: 10px 12px 16px; display: flex; flex-direction: column; gap: 6px; background-color: var(--room);
+  background-image: radial-gradient(var(--dot) 2px, transparent 2.5px), radial-gradient(var(--dot) 1.5px, transparent 2px); background-size: 26px 26px, 26px 26px; background-position: 0 0, 13px 13px; }
+.day { align-self: center; background: #fff; border: 1px solid var(--line); color: var(--muted); font-size: 0.78rem; padding: 3px 12px; border-radius: 999px; margin: 8px 0 4px; }
 .m { display: flex; gap: 6px; align-items: flex-end; max-width: 86%; }
 .m .col { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
-.m .nm { font-size: 0.8rem; color: #33404c; }
-.m .b { background: var(--other); border-radius: 4px 14px 14px 14px; padding: 7px 11px; white-space: pre-wrap; overflow-wrap: anywhere; font-size: 0.93rem; }
-.m .t { font-size: 0.7rem; color: #46525d; white-space: nowrap; }
+.m .nm { font-size: 0.8rem; color: var(--muted); }
+.m .b { background: var(--other); border: 1px solid var(--line); border-radius: 4px 14px 14px 14px; padding: 7px 11px; white-space: pre-wrap; overflow-wrap: anywhere; font-size: 0.93rem; }
+.m .t { font-size: 0.7rem; color: var(--muted); white-space: nowrap; }
 .m.mine { align-self: flex-end; flex-direction: row-reverse; }
-.m.mine .b { background: var(--me); border-radius: 14px 4px 14px 14px; }
+.m.mine .b { background: var(--me); border-color: var(--top); border-radius: 14px 4px 14px 14px; }
 .m .tag { display: block; font-size: 0.72rem; font-weight: 700; color: var(--warn); margin-bottom: 2px; }
-.m.ask .b, .m.notdone .b { box-shadow: inset 0 0 0 2px #f0a43a; }
-.m.auto .b { background: #f2f6f9; color: #33404c; font-size: 0.86rem; }
-.m.mine.auto .b { background: #fff6b3; }
+.m.ask .b, .m.notdone .b { box-shadow: inset 0 0 0 2px #e79aa8; background: var(--warn-soft); }
+.m.auto .b { background: var(--chalk-soft); border-color: #f2dcc0; color: var(--fg); font-size: 0.86rem; }
+.m.mine.auto .b { background: var(--chalk-soft); border-color: #f2dcc0; }
 .m .res { font-size: 0.72rem; color: var(--done); }
 .comp { display: flex; flex-direction: column; gap: 6px; padding: 8px 10px calc(8px + env(safe-area-inset-bottom, 0px)); background: #fff; border-top: 1px solid var(--line); }
 .comp .row { display: flex; gap: 8px; align-items: flex-end; }
 .comp textarea { flex: 1; font: inherit; font-size: 0.95rem; min-height: 40px; max-height: 120px; resize: none; padding: 8px 10px; border: 1px solid var(--line); border-radius: 10px; }
-.comp .send { border: 0; background: var(--me); border-radius: 10px; padding: 9px 14px; font-weight: 700; }
+.comp .send { border: 0; background: var(--accent); color: #fff; font-family: var(--font-body); border-radius: 10px; padding: 9px 14px; font-weight: 700; }
 .chip { align-self: flex-start; border: 1px solid var(--line); background: #fff; border-radius: 999px; padding: 3px 12px; font-size: 0.8rem; color: var(--muted); }
-.chip[aria-pressed="true"] { border-color: #f0a43a; background: var(--warn-soft); color: var(--warn); font-weight: 700; }
+.chip[aria-pressed="true"] { border-color: var(--accent); background: var(--warn-soft); color: var(--warn); font-weight: 700; }
 /* 덮는 판: 할 일, 원장님 */
-.sheet { position: fixed; inset: 0; background: var(--soft); z-index: 5; display: flex; flex-direction: column; max-width: 720px; margin: 0 auto; }
-.sheet .head { display: flex; align-items: center; gap: 8px; padding: 10px 14px; background: #fff; border-bottom: 1px solid var(--line); }
-.sheet .head h2 { margin: 0; font-size: 1.02rem; flex: 1; }
-.sheet .body { flex: 1; overflow-y: auto; padding: 12px 14px 40px; display: grid; gap: 12px; align-content: start; }
-.back { border: 0; background: none; font-weight: 700; color: var(--accent); padding: 4px 2px; }
+.back { border: 0; background: none; font-weight: 700; color: var(--fg); padding: 4px 2px; }
 .tabs { display: flex; gap: 6px; flex-wrap: wrap; }
 .tabs button { border: 1px solid var(--line); background: #fff; border-radius: 8px; padding: 5px 12px; font-size: 0.88rem; }
-.tabs button[aria-pressed="true"] { background: var(--fg); color: #fff; border-color: var(--fg); font-weight: 700; }
+.tabs button[aria-pressed="true"] { background: var(--accent); color: #fff; border-color: var(--accent); font-weight: 700; }
 .datenav { display: flex; align-items: center; gap: 8px; }
 .datenav b { flex: 1; text-align: center; }
 .datenav button { border: 1px solid var(--line); background: #fff; border-radius: 8px; padding: 4px 10px; }
-.card { background: #fff; border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; display: grid; gap: 8px; min-width: 0; }
+.card { background: #fff; border: 2px solid var(--line); border-radius: 12px; padding: 12px 14px; display: grid; gap: 8px; min-width: 0; }
 .card.ok { border-color: var(--done); }
-.card.nd, .card.mv { border-color: #f0a43a; }
+.card.nd, .card.mv { border-color: #e79aa8; }
 .card h3 { margin: 0; font-size: 0.98rem; display: flex; gap: 8px; align-items: baseline; justify-content: space-between; flex-wrap: wrap; }
 .card h3 .n { font-size: 0.8rem; color: var(--muted); font-weight: 500; }
-.badge { font-size: 0.72rem; padding: 1px 8px; border-radius: 999px; border: 1px solid var(--accent); color: var(--accent); font-weight: 600; white-space: nowrap; }
+.badge { font-size: 0.72rem; padding: 1px 8px; border-radius: 999px; border: 1px solid var(--mint); color: var(--mint-ink); font-weight: 600; white-space: nowrap; }
 .note { background: var(--warn-soft); border-radius: 10px; padding: 9px 12px; font-size: 0.9rem; white-space: pre-wrap; }
-details.rules { background: #eef5f1; border-radius: 10px; padding: 8px 12px; font-size: 0.86rem; white-space: pre-wrap; }
+details.rules { background: var(--mint-soft); border-radius: 10px; padding: 8px 12px; font-size: 0.86rem; white-space: pre-wrap; }
 details.rules summary { font-weight: 700; cursor: pointer; }
 .ln { display: flex; gap: 9px; align-items: flex-start; font-size: 0.9rem; cursor: pointer; }
 .ln input[type="checkbox"] { width: 19px; height: 19px; margin-top: 2px; accent-color: var(--done); flex: none; }
@@ -81,7 +112,7 @@ details.rules summary { font-weight: 700; cursor: pointer; }
 .fld { display: grid; gap: 3px; }
 .fld .lb { display: flex; justify-content: space-between; align-items: center; font-size: 0.78rem; color: var(--muted); }
 .fld .tx { white-space: pre-wrap; overflow-wrap: anywhere; background: var(--soft); border-radius: 8px; padding: 8px 10px; font-size: 0.88rem; max-height: 260px; overflow: auto; }
-.copy { border: 1px solid var(--accent); background: none; color: var(--accent); border-radius: 6px; padding: 1px 9px; font-size: 0.76rem; }
+.copy { border: 1px solid var(--line); background: #fff; color: var(--muted); border-radius: 6px; padding: 1px 9px; font-size: 0.76rem; }
 .acts { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; border-top: 1px solid var(--line); padding-top: 8px; }
 .need { font-size: 0.8rem; color: var(--warn); font-weight: 700; }
 .hint { font-size: 0.8rem; color: var(--muted); }
@@ -90,7 +121,7 @@ table { width: 100%; border-collapse: collapse; font-size: 0.86rem; font-variant
 th, td { text-align: left; padding: 5px 3px; border-bottom: 1px solid var(--line); }
 th { color: var(--muted); font-weight: 500; font-size: 0.78rem; }
 td.miss { color: var(--warn); font-weight: 700; }
-.pay { background: #eef5f1; border-radius: 10px; padding: 10px 12px; display: grid; gap: 2px; font-size: 0.86rem; font-variant-numeric: tabular-nums; }
+.pay { background: var(--mint-soft); border-radius: 10px; padding: 10px 12px; display: grid; gap: 2px; font-size: 0.86rem; font-variant-numeric: tabular-nums; }
 .pay .row { display: flex; justify-content: space-between; gap: 10px; }
 .pay .total { font-weight: 700; font-size: 0.98rem; border-top: 1px solid var(--line); padding-top: 4px; margin-top: 2px; }
 .pay .q { color: var(--warn); font-size: 0.8rem; }
@@ -98,10 +129,11 @@ td.miss { color: var(--warn); font-weight: 700; }
 .fixrow input, .fixrow select { font: inherit; font-size: 0.85rem; padding: 3px 5px; border: 1px solid var(--line); border-radius: 6px; }
 /* 로그인 */
 .login { min-height: 100dvh; display: grid; place-content: center; gap: 14px; padding: 24px 16px; text-align: center; }
-.login h1 { margin: 0; font-size: 1.4rem; }
+.login h1 { margin: 0; font-family: var(--font-title); font-weight: 400; font-size: 1.9rem; color: var(--mint-ink); }
 .login .names { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
-.login .names button { border: 0; background: #fff; border-radius: 14px; padding: 14px 18px; font-weight: 700; min-width: 92px; }
-.login input { font-size: 1.4rem; letter-spacing: 0.4em; text-align: center; padding: 10px; border: 0; border-radius: 12px; width: 220px; }
+.login .names button { border: 2px solid var(--wood-dark); background: #fff; color: var(--fg); border-radius: 14px; padding: 14px 18px; font-weight: 700; min-width: 92px; }
+.login input { font-size: 1.4rem; letter-spacing: 0.4em; text-align: center; padding: 10px; border: 1px solid var(--line); border-radius: 12px; width: 220px; background: #fff; color: var(--fg); }
+.login { background-color: var(--room); background-image: radial-gradient(var(--dot) 2px, transparent 2.5px); background-size: 26px 26px; }
 .err { color: #b3261e; font-weight: 700; font-size: 0.9rem; }
 .empty { color: var(--muted); text-align: center; padding: 24px 10px; }
 </style>
@@ -118,7 +150,7 @@ const R = (fn, ...args) => window.google && google.script && google.script.run
   : fetch(API, { method: "POST", credentials: "omit", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify({ fn, args }) })
       .then(r => r.json()).then(j => { if (j.e) throw new Error(j.e); return j.r; });
 const store = { get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }, set(k, v) { try { v == null ? localStorage.removeItem(k) : localStorage.setItem(k, v); } catch (e) {} } };
-let token = store.get("aide-token"), S = null, view = "chat", sub = "", date = "", ver = "", lastId = 0, askToggle = false, outStep = "", attMonth = "", editAtt = "", busy = false;
+let token = store.get("aide-token"), S = null, view = "home", sub = "day", filter = "", date = "", ver = "", lastId = 0, askToggle = false, outStep = "", attMonth = "", editAtt = "", busy = false;
 const drafts = {};
 const OWNER = "원장님", DAY = ["일", "월", "화", "수", "목", "금", "토"];
 
@@ -222,23 +254,32 @@ function stats(d, name) {
 }
 
 /* ---------- 그리기 ---------- */
+/* 할 일 상태: 대기, 하는 중(「시작」을 누름), 완료, 확인 필요(못 했어요) — 교무실 현황판과 같은 네 칸 */
+const ST = { wait: "대기", work: "하는 중", done: "완료", need: "확인 필요" };
+function statusOf(d, it) { const c = (S.checks || {})[`${d}_${it.id}`] || {}; return c.done ? "done" : c.notDone ? "need" : c.working ? "work" : "wait"; }
+const seen = () => +(store.get("aide-seen") || 0);
 function render() {
   if (!S) return;
-  const app = $("#app"), keep = $(".room") ? $(".room").scrollTop : null;
+  const app = $("#app"), scroller = $(".page") || $(".room"), keep = scroller ? scroller.scrollTop : null, was = app.dataset.view;
   const st = isOwner() ? null : stats(S.today, S.me);
+  if (view === "chat" && S.messages.length) store.set("aide-seen", String(Math.max(...S.messages.map(m => m.id))));
+  const unread = view === "chat" ? 0 : S.messages.filter(m => m.id > seen() && m.name !== S.me).length;
   const top = el("div", { class: "top" }, el("h1", {}, "날개달기 조교방"), el("span", { class: "me" }, S.me),
-    el("button", { class: "tbtn", type: "button", onclick: () => { view = "todo"; sub = "day"; render(); } }, "할 일", st && st.none ? el("span", { class: "cnt" }, String(st.none)) : null),
-    isOwner() ? el("button", { class: "tbtn", type: "button", onclick: () => { view = "boss"; sub = "ask"; render(); } }, "원장님", S.asks ? el("span", { class: "cnt" }, String(S.asks)) : null) : null,
     el("button", { class: "tbtn", type: "button", "aria-label": "메뉴", onclick: menu }, "⋯"));
+  const navs = [["home", "할 일", st && st.none], ["chat", "대화방", unread]];
+  if (isOwner()) navs.push(["boss", "원장님", S.asks]);
+  const nav = el("div", { class: "nav", role: "tablist" }, ...navs.map(([v, label, n]) =>
+    el("button", { type: "button", role: "tab", "aria-selected": String(view === v), onclick: () => { view = v; sub = v === "boss" ? "ask" : "day"; filter = ""; render(); if (v === "chat") scrollEnd(); } },
+      label, n ? el("span", { class: "cnt" }, String(n)) : null)));
   const kids = [top];
   if (!isOwner()) kids.push(attBar(st));
-  kids.push(roomEl(), composer());
+  kids.push(nav);
+  if (view === "chat") kids.push(roomEl(), composer());
+  else kids.push(el("div", { class: "page" }, ...(view === "boss" && isOwner() ? bossBody() : homeBody())));
   app.replaceChildren(...kids);
-  if (keep != null) $(".room").scrollTop = keep;
-  const old = $(".sheet .body"), sk = old ? old.scrollTop : 0;
-  document.querySelectorAll(".sheet").forEach(s => s.remove());
-  const sh = view === "todo" ? todoSheet() : view === "boss" && isOwner() ? bossSheet() : null;
-  if (sh) { document.body.append(sh); sh.querySelector(".body").scrollTop = sk; }
+  app.dataset.view = view;
+  const sc = view === "chat" ? $(".room") : $(".page");
+  if (keep != null && was === view && sc) sc.scrollTop = keep;
 }
 function menu() {
   const a = prompt("메뉴: 1 로그아웃, 2 내 비밀번호 바꾸기", "");
@@ -294,24 +335,26 @@ function attBar(st) {
 }
 
 /* ---------- 할 일 판 ---------- */
-function sheet(title, body) {
-  return el("div", { class: "sheet", role: "dialog", "aria-label": title },
-    el("div", { class: "head" }, el("button", { class: "back", type: "button", onclick: () => { view = "chat"; render(); } }, "← 대화방"), el("h2", {}, title)),
-    el("div", { class: "body" }, ...body));
-}
 function tabs(list) {
   return el("div", { class: "tabs" }, ...list.map(([v, label, n]) => el("button", { type: "button", "aria-pressed": String(sub === v), onclick: () => { sub = v; render(); } }, label, n ? ` ${n}` : "")));
 }
-function todoSheet() {
-  const body = [tabs([["day", "그날 할 일"], ["week", "이번 주 마감 체크"]])];
+function homeBody() {
+  const d = date, items = dayData(d).items.filter(mine), counts = { wait: 0, work: 0, done: 0, need: 0 };
+  items.forEach(it => counts[statusOf(d, it)]++);
+  if (isOwner()) counts.need += S.asks || 0;
+  const body = [el("div", { class: "tiles" }, ...Object.keys(ST).map(k =>
+    el("button", { type: "button", class: "tile " + k + (filter === k ? " on" : ""), "aria-pressed": String(filter === k), onclick: () => { filter = filter === k ? "" : k; render(); } },
+      el("b", {}, String(counts[k])), el("span", {}, ST[k]))))];
   body.push(el("div", { class: "datenav" },
     el("button", { type: "button", "aria-label": "전날", onclick: () => { date = addDays(date, -1); load(); } }, "◀"),
     el("b", {}, md(date)),
     el("button", { type: "button", "aria-label": "다음 날", onclick: () => { date = addDays(date, 1); load(); } }, "▶"),
     date !== S.today ? el("button", { type: "button", onclick: () => { date = S.today; load(); } }, "오늘") : null));
-  if (S.rules) body.push(el("details", { class: "rules" }, el("summary", {}, "늘 지키는 규칙"), S.rules));
-  if (sub === "week") body.push(...weekEl()); else body.push(...dayEl(date));
-  return sheet("할 일", body);
+  body.push(tabs([["day", "그날 할 일"], ["week", "이번 주 마감 체크"]]));
+  if (filter) body.push(el("div", { class: "hint" }, `「${ST[filter]}」만 보고 있어요. 같은 칸을 한 번 더 누르면 모두 보여요.` + (filter === "need" && isOwner() && S.asks ? ` 확인 부탁 ${S.asks}건은 「원장님」 탭에 있어요.` : "")));
+  else if (S.rules) body.push(el("details", { class: "rules" }, el("summary", {}, "늘 지키는 규칙"), S.rules));
+  if (sub === "week") body.push(...weekEl()); else body.push(...dayEl(d));
+  return body;
 }
 function check(key, d, label, opt = {}) {
   const c = (S.checks || {})[key];
@@ -328,6 +371,7 @@ function check(key, d, label, opt = {}) {
 }
 function dayEl(d) {
   const day = dayData(d), out = [], c = S.checks || {};
+  if (filter) { const its = day.items.filter(mine).filter(it => statusOf(d, it) === filter); return its.length ? its.map(it => itemEl(d, it)) : [el("div", { class: "empty" }, `「${ST[filter]}」인 일이 없어요.`)]; }
   if (day.note) out.push(el("div", { class: "note" }, day.note));
   if (day.moves.length) out.push(el("section", { class: "card mv" },
     el("h3", {}, "출결 변동 (출결 체크 전에 꼭 보기)", el("span", { class: "n" }, `${day.moves.filter((_, i) => c[`${d}_mv_${i}`] && c[`${d}_mv_${i}`].done).length} / ${day.moves.length} 확인`)),
@@ -364,8 +408,10 @@ function dayEl(d) {
 }
 function itemEl(d, it) {
   const key = `${d}_${it.id}`, c = (S.checks || {})[key] || {}, cl = it.checklist || [];
-  const card = el("section", { class: "card" + (c.done ? " ok" : c.notDone ? " nd" : "") },
-    el("h3", {}, it.title || "", it.who ? el("span", { class: "badge" }, "담당 " + it.who) : it.kind === "extra" ? el("span", { class: "badge" }, "더한 일") : null));
+  const stt = statusOf(d, it);
+  const card = el("section", { class: "card " + stt },
+    el("h3", {}, el("span", {}, it.title || ""), el("span", { class: "tags" }, el("span", { class: "pill " + stt }, ST[stt]),
+      it.who ? el("span", { class: "badge" }, "담당 " + it.who) : it.kind === "extra" ? el("span", { class: "badge" }, "더한 일") : null)));
   for (const f of it.fields || []) {
     const tx = el("div", { class: "tx" }, f.text || "");
     const b = el("button", { class: "copy", type: "button", onclick: () => { navigator.clipboard && navigator.clipboard.writeText(f.text || "").then(() => { b.textContent = "복사됨"; }); } }, "복사");
@@ -394,7 +440,8 @@ function itemEl(d, it) {
     nd.disabled = true; delete drafts[key];
     await act("api_check", key, d, { notDone: !c.notDone, done: false, note: v }, c.notDone ? "" : `못 했어요: ${it.title}\n${v}`, "notdone");
   };
-  card.append(ta, el("div", { class: "acts" }, done, nd, need));
+  const start = stt === "wait" ? el("button", { class: "pbtn alt", type: "button", onclick: async e => { e.target.disabled = true; await act("api_check", key, d, { working: true }, "시작: " + it.title, "att"); } }, "시작") : null;
+  card.append(ta, el("div", { class: "acts" }, start, done, nd, need));
   return card;
 }
 /* 이번 주 마감 체크: 그 주(월~일) 일을 날짜별로, 체크 줄만 모아서 */
@@ -403,7 +450,7 @@ function weekEl() {
   for (const day of S.days || []) {
     const its = day.items.filter(mine);
     if (!its.length) continue;
-    out.push(el("div", { class: "day", style: "align-self:start;background:#d7dee5;color:#33404c" }, md(day.date)));
+    out.push(el("div", { class: "day", style: "align-self:start;background:#e1f3f1;color:#2e6b66" }, md(day.date)));
     for (const it of its) {
       const c = (S.checks || {})[`${day.date}_${it.id}`] || {}, cl = it.checklist || [];
       items++; if (c.done) itemsDone++;
@@ -420,12 +467,12 @@ function weekEl() {
 
 /* ---------- 원장님 판 ---------- */
 let attCache = null;
-function bossSheet() {
+function bossBody() {
   const body = [tabs([["ask", "확인 부탁", S.asks || ""], ["att", "출퇴근, 급여"], ["pin", "비밀번호"]])];
   if (sub === "att") body.push(...attEl());
   else if (sub === "pin") body.push(pinEl());
   else body.push(asksEl());
-  return sheet("원장님", body);
+  return body;
 }
 function asksEl() {
   const box = el("div", { style: "display:grid;gap:10px" }, el("div", { class: "empty" }, "불러오는 중…"));
@@ -434,7 +481,7 @@ function asksEl() {
     if (!list.length) { box.replaceChildren(el("div", { class: "empty" }, "확인할 것이 없어요.")); return; }
     box.replaceChildren(...list.reverse().map(m => {
       const ta = el("textarea", { class: "memo", placeholder: "답을 적으면 대화방에도 올라가요(안 적어도 됨)", "aria-label": "답" });
-      const b = el("button", { class: "pbtn", type: "button" }, "확인 끝");
+      const b = el("button", { class: "pbtn pink", type: "button" }, "확인 끝");
       b.onclick = async () => { b.disabled = true; await act("api_resolve", m.id, ta.value.trim()); };
       return el("section", { class: "card nd" }, el("h3", {}, m.name, el("span", { class: "n" }, `${md(m.date)} ${m.time} · ${m.kind === "notdone" ? "못 한 일" : "확인 부탁"}`)),
         el("div", { style: "white-space:pre-wrap" }, m.text), ta, b);
