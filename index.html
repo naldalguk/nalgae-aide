@@ -203,9 +203,10 @@ async function editTask(d, it) {
   if (v === null) return;
   const t = v.trim();
   if (t === (it.title || "").trim()) return;
-  if (!t) { if (confirm("「" + it.title + "」 일을 지울까요?")) await act("api_editTask", d, it.id, "", true); return; }
+  if (!t) return delTask(d, it);
   await act("api_editTask", d, it.id, t, false);
 }
+async function delTask(d, it) { if (confirm("「" + it.title + "」 일을 지울까요?")) await act("api_editTask", d, it.id, "", true); }
 async function showLogin(picked, msg, setting) {
   const app = $("#app");
   if (!picked) {
@@ -479,7 +480,8 @@ function itemEl(d, it) {
   const card = el("section", { class: "card " + stt },
     el("h3", {}, el("span", {}, it.title || ""), el("span", { class: "tags" }, el("span", { class: "pill " + stt }, ST[stt]),
       it.who ? el("span", { class: "badge" }, "담당 " + it.who) : it.kind === "extra" ? el("span", { class: "badge" }, "더한 일") : null,
-      el("button", { class: "ebtn", type: "button", onclick: () => editTask(d, it) }, "고치기"))));
+      el("button", { class: "ebtn", type: "button", onclick: () => editTask(d, it) }, "고치기"),
+      S.me === "원장님" || it.kind === "extra" ? el("button", { class: "ebtn", type: "button", onclick: () => delTask(d, it) }, "지우기") : null)));
   /* 10-30 「눌렀을 때 명확하지 않음」: 지금 상태를 글 한 줄로 크게 */
   const whoAt = (c.by ? c.by + " " : "") + (c.at ? hm(c.at) : "");
   card.append(el("div", { class: "stline " + stt }, stt === "done" ? `완료했어요 (${whoAt})` : stt === "need" ? `못 했어요 (${whoAt})` + (c.note ? " · " + c.note : "")
