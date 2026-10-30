@@ -70,11 +70,13 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-
 .pill.done { background: #fff; border: 1px solid var(--line); color: var(--muted); }
 .pill.need { background: var(--accent-soft); color: var(--accent); }
 .card.done { background: var(--soft); }
+.card.done { border-color: var(--accent); }
 .card.done h3 > span:first-child { color: var(--muted); text-decoration: line-through; }
 .card.need { border-color: var(--accent); }
 .card.work { border-color: var(--accent); border-width: 2px; }
 .pill.done { background: var(--accent); color: #fff; border: 0; }
 .stline { font-size: 0.88rem; font-weight: 700; color: var(--accent); background: var(--accent-soft); border-radius: 8px; padding: 6px 10px; }
+.stline.done { background: var(--accent); color: #fff; }
 .stline.wait { background: #fff; border: 1px dashed var(--line); color: var(--muted); font-weight: 400; }
 .saved { font-size: 0.82rem; color: var(--accent); font-weight: 700; }
 .ebtn { border: 1px solid var(--line); background: #fff; border-radius: 8px; padding: 2px 8px; font-size: 0.75rem; color: var(--muted); }
@@ -107,7 +109,8 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-
 .datenav b { flex: 1; text-align: center; }
 .datenav button { border: 1px solid var(--line); background: #fff; border-radius: 8px; padding: 4px 10px; }
 .card { background: #fff; border: 2px solid var(--line); border-radius: 12px; padding: 12px 14px; display: grid; gap: 8px; min-width: 0; }
-.card.ok { }
+.card.ok { background: var(--soft); border-color: var(--accent); }
+.card.ok h3 .n { background: var(--accent); color: #fff; border-radius: 999px; padding: 1px 8px; font-weight: 700; }
 .card.nd, .card.mv { border-color: var(--accent); }
 .card h3 { margin: 0; font-size: 0.98rem; display: flex; gap: 8px; align-items: baseline; justify-content: space-between; flex-wrap: wrap; }
 .card h3 .n { font-size: 0.8rem; color: var(--muted); font-weight: 500; }
@@ -118,7 +121,9 @@ details.rules summary { font-weight: 700; cursor: pointer; }
 .ln { display: flex; gap: 9px; align-items: flex-start; font-size: 0.9rem; cursor: pointer; }
 .ln input[type="checkbox"] { width: 19px; height: 19px; margin-top: 2px; accent-color: var(--done); flex: none; }
 .ln .tm { color: var(--muted); font-variant-numeric: tabular-nums; min-width: 3.4em; font-size: 0.85rem; }
-.ln .x { text-decoration: line-through; color: var(--muted); }
+/* 10-30 원장님 「시작 눌렀을 때 줄이 그어지고 완료하면 아무 표시도 안 나서 헷갈려」: 줄 긋기는 일 전체 완료에만 쓰고, 체크 줄은 굵은 글씨와 ✔로 */
+.ln .x { color: var(--done); font-weight: 700; }
+.ln .x::before { content: "✔ "; }
 .fld { display: grid; gap: 3px; }
 .fld .lb { display: flex; justify-content: space-between; align-items: center; font-size: 0.78rem; color: var(--muted); }
 .fld .tx { white-space: pre-wrap; overflow-wrap: anywhere; background: var(--soft); border-radius: 8px; padding: 8px 10px; font-size: 0.88rem; max-height: 260px; overflow: auto; }
@@ -429,10 +434,13 @@ function check(key, d, label, opt = {}) {
   const box = el("input", { type: "checkbox", id: "k-" + key });
   box.checked = !!(c && c.done);
   box.onchange = async () => {
+    /* 조교 계정: 체크 줄도 누가 했는지 이름이 남게 */
+    const nm = opt.as ? opt.as() : "";
+    if (nm === null) { box.checked = !box.checked; return; }
     box.disabled = true;
     const post = box.checked && opt.post ? opt.post() : "", next = box.checked && opt.then ? opt.then() : null;
-    busy = true; const r = await call("api_check", key, d, { done: box.checked }, post, "done");
-    if (r && next) await call("api_check", next.key, d, { done: true }, next.post, "done");
+    busy = true; const r = await callAs(nm, "api_check", key, d, { done: box.checked }, post, "done");
+    if (r && next) await callAs(nm, "api_check", next.key, d, { done: true }, next.post, "done");
     busy = false; await load();
   };
   return el("label", { class: "ln", for: "k-" + key }, box, label);
@@ -451,7 +459,7 @@ function dayEl(d) {
       ...list.map((r, i) => {
         const key = `${d}_routine_${name}_${i}`, k = c[key];
         if (!r.report) return check(key, d, [el("span", { class: "tm" }, r.time || ""), el("span", { class: k && k.done ? "x" : null }, r.text)],
-          { post: () => list.every((_, j) => j === i || (c[`${d}_routine_${name}_${j}`] && c[`${d}_routine_${name}_${j}`].done)) ? `늘 하는 일(${dayOf(d)}요일) 다 함` : "" });
+          { post: () => list.every((_, j) => j === i || (c[`${d}_routine_${name}_${j}`] && c[`${d}_routine_${name}_${j}`].done)) ? `늘 하는 일(${dayOf(d)}요일) 다 함` : "", as: () => shared() && (S.workers || []).includes(name) ? name : "" });
         /* 적어야 체크되는 줄(예: 모자란 비품). 「없음」이 아니면 원장님 확인으로 */
         const ta = el("textarea", { class: "memo", placeholder: r.report, "aria-label": r.text });
         ta.value = drafts[key] != null ? drafts[key] : (k && k.note) || ""; ta.oninput = () => { drafts[key] = ta.value; };
@@ -484,8 +492,8 @@ function itemEl(d, it) {
       S.me === "원장님" || it.kind === "extra" ? el("button", { class: "ebtn", type: "button", onclick: () => delTask(d, it) }, "지우기") : null)));
   /* 10-30 「눌렀을 때 명확하지 않음」: 지금 상태를 글 한 줄로 크게 */
   const whoAt = (c.by ? c.by + " " : "") + (c.at ? hm(c.at) : "");
-  card.append(el("div", { class: "stline " + stt }, stt === "done" ? `완료했어요 (${whoAt})` : stt === "need" ? `못 했어요 (${whoAt})` + (c.note ? " · " + c.note : "")
-    : stt === "work" ? `하는 중이에요 (${whoAt} 시작)` : "아직 시작 안 함. 시작할 때 「시작」, 끝나면 「완료」를 눌러요"));
+  card.append(el("div", { class: "stline " + stt }, stt === "done" ? `✔ 완료했어요 (${whoAt})` : stt === "need" ? `못 했어요 (${whoAt})` + (c.note ? " · " + c.note : "")
+    : stt === "work" ? `▶ 하는 중이에요 (${whoAt} 시작). 끝나면 「완료」를 눌러요` : "아직 시작 안 함. 시작할 때 「시작」, 끝나면 「완료」를 눌러요"));
   if (saved[key]) { card.append(el("div", { class: "saved" }, saved[key])); delete saved[key]; }
   for (const f of it.fields || []) {
     const tx = el("div", { class: "tx" }, f.text || "");
@@ -495,7 +503,7 @@ function itemEl(d, it) {
   cl.forEach((line, j) => {
     const k = `${d}_cl_${it.id}_${j}`, kc = (S.checks || {})[k];
     card.append(check(k, d, el("span", { class: kc && kc.done ? "x" : null }, line),
-      { then: () => !it.report && !c.done && cl.every((_, jj) => jj === j || ((S.checks || {})[`${d}_cl_${it.id}_${jj}`] || {}).done) ? { key, post: "완료: " + it.title } : null }));
+      { then: () => !it.report && !c.done && cl.every((_, jj) => jj === j || ((S.checks || {})[`${d}_cl_${it.id}_${jj}`] || {}).done) ? { key, post: "완료: " + it.title } : null, as: () => who() }));
   });
   if (it.ifStuck) card.append(el("div", { class: "note" }, "막히면: " + it.ifStuck));
   const ta = el("textarea", { class: "memo", placeholder: it.report ? `보고할 것: ${it.report}` : "남길 말. 못 했으면 왜 못 했는지와 대신 한 것" , "aria-label": "남길 말" });
@@ -543,7 +551,7 @@ function weekEl() {
       items++; if (c.done) itemsDone++;
       lines += cl.length; linesDone += cl.filter((_, j) => ((S.checks || {})[`${day.date}_cl_${it.id}_${j}`] || {}).done).length;
       out.push(el("section", { class: "card" + (c.done ? " ok" : c.notDone ? " nd" : "") },
-        el("h3", {}, it.title, el("span", { class: "n" }, c.done ? "완료" : c.notDone ? "못 함" : "보고 없음")),
+        el("h3", {}, it.title, el("span", { class: "n" }, c.done ? "✔ 완료" : c.working ? "하는 중" : c.notDone ? "못 함" : "보고 없음")),
         ...(cl.length ? cl.map((line, j) => { const k = `${day.date}_cl_${it.id}_${j}`, kc = (S.checks || {})[k]; return check(k, day.date, el("span", { class: kc && kc.done ? "x" : null }, line)); })
           : [el("div", { class: "hint" }, "체크 줄 없음, 「그날 할 일」에서 완료를 눌러요")])));
     }
