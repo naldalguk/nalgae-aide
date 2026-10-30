@@ -198,7 +198,12 @@ async function showLogin(picked, msg, setting) {
     let people = [];
     try { people = await R("api_people"); } catch (e) { app.querySelector(".empty").textContent = "연결하지 못했어요. 새로고침해 주세요."; return; }
     app.replaceChildren(el("div", { class: "login" }, el("h1", {}, "날개달기 조교방"), el("div", { class: "hint" }, "이름을 눌러 주세요"),
-      el("div", { class: "names" }, ...people.map(p => el("button", { type: "button", onclick: () => showLogin(p.name, "", !p.hasPin) }, p.name)))));
+      el("div", { class: "names" }, ...people.map(p => el("button", { type: "button", onclick: p.noPin ? async e => {
+        e.target.disabled = true;
+        const r = await R("api_login", p.name, "").catch(() => ({ error: "연결하지 못했어요. 새로고침해 주세요." }));
+        if (r.error) { e.target.disabled = false; alert(r.error); return; }
+        token = r.token; store.set("aide-token", token); start();
+      } : () => showLogin(p.name, "", !p.hasPin) }, p.name)))));
     return;
   }
   const len = picked === OWNER ? 6 : 4;
@@ -512,9 +517,8 @@ function weekEl() {
 /* ---------- 원장님 판 ---------- */
 let attCache = null;
 function bossBody() {
-  const body = [tabs([["ask", "확인 부탁", S.asks || ""], ["att", "출퇴근, 급여"], ["pin", "비밀번호"]])];
+  const body = [tabs([["ask", "확인 부탁", S.asks || ""], ["att", "출퇴근, 급여"]])];
   if (sub === "att") body.push(...attEl());
-  else if (sub === "pin") body.push(pinEl());
   else body.push(asksEl());
   return body;
 }
@@ -532,12 +536,6 @@ function asksEl() {
     }));
   });
   return box;
-}
-function pinEl() {
-  const people = ["조교"];
-  return el("section", { class: "card" }, el("h3", {}, "조교 비밀번호 다시 정하게 하기"),
-    el("div", { class: "hint" }, "조교 계정은 하나예요. 비밀번호를 잊었을 때 누르면, 다음에 들어오는 조교가 새로 정해요."),
-    ...people.map(n => el("button", { class: "pbtn alt", type: "button", onclick: async () => { if (confirm(`${n} 비밀번호를 지울까요?`)) { const r = await call("api_resetPin", n); if (r) alert("지웠어요. 다음에 들어올 때 새로 정해요."); } } }, n + " 비밀번호 지우기")));
 }
 /* 출퇴근과 급여: 쉬는 시간은 퇴근 때 고른 만큼 빼고, 주휴수당은 4주 평균 1주 15시간 이상이고 근무 요일을 다 나온 주만(근로기준법 제18조 3항, 제55조) */
 function attEl() {
