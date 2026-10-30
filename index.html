@@ -507,8 +507,12 @@ function itemEl(d, it) {
       { then: () => !it.report && !c.done && cl.every((_, jj) => jj === j || ((S.checks || {})[`${d}_cl_${it.id}_${jj}`] || {}).done) ? { key, post: "완료: " + it.title } : null, as: () => who() }));
   });
   if (it.ifStuck) card.append(el("div", { class: "note" }, "막히면: " + it.ifStuck));
-  const ta = el("textarea", { class: "memo", placeholder: it.report ? `보고할 것: ${it.report}` : "남길 말. 못 했으면 왜 못 했는지와 대신 한 것" , "aria-label": "남길 말" });
-  ta.value = drafts[key] != null ? drafts[key] : c.note || ""; ta.oninput = () => { drafts[key] = ta.value; };
+  /* 10-31 원장님 「어떤 버튼을 눌러도 그 아래 질문을 하거나 어떻게 작업했는지 보고하는 칸은 늘 있어야 해」:
+     칸은 늘 비어 있는 새 글 칸. 시작, 완료, 못 했어요 어느 버튼이든 적은 글이 같이 올라가고, 「질문 보내기」는 상태를 안 바꾸고 글만 보낸다 */
+  const ta = el("textarea", { class: "memo", placeholder: (it.report ? `보고할 것: ${it.report}. ` : "") + "질문이나 어떻게 했는지 적어요. 어떤 버튼을 눌러도 같이 올라가요", "aria-label": "질문, 보고" });
+  ta.value = drafts[key] || ""; ta.oninput = () => { drafts[key] = ta.value; };
+  if (c.note && stt !== "need") card.append(el("div", { class: "note" }, "남긴 말: " + c.note));
+  card.append(el("div", { class: "hint" }, "질문, 보고"));
   const need = el("span", { class: "need" });
   /* 조교 계정: 이 일을 누가 했는지 고르기(완료, 못 했어요, 시작에 그 이름이 남아요) */
   const ws = S.workers || [];
@@ -527,17 +531,24 @@ function itemEl(d, it) {
     if (!c.done && it.report && !v) { need.textContent = `먼저 위 칸에 ${it.report}을 적어 주세요`; ta.focus(); return; }
     const w = who(); if (w === null) return;
     done.disabled = true; done.textContent = "저장 중…"; delete drafts[key]; saved[key] = c.done ? "완료를 되돌렸어요" : "완료로 저장했어요";
-    await actAs(w, "api_check", key, d, { done: !c.done, note: v }, (c.done ? "완료 취소: " : "완료: ") + it.title + (!c.done && v ? "\n" + v : ""), c.done ? "chat" : "done");
+    await actAs(w, "api_check", key, d, v ? { done: !c.done, note: v } : { done: !c.done }, (c.done ? "완료 취소: " : "완료: ") + it.title + (v ? "\n" + v : ""), c.done ? "chat" : "done");
   };
   nd.onclick = async () => {
     const v = ta.value.trim();
     if (!c.notDone && !v) { need.textContent = "먼저 위 칸에 왜 못 했는지와 대신 한 것을 적어 주세요"; ta.focus(); return; }
     const w = who(); if (w === null) return;
     nd.disabled = true; nd.textContent = "저장 중…"; delete drafts[key]; saved[key] = c.notDone ? "못 함을 되돌렸어요" : "못 했어요로 저장했어요";
-    await actAs(w, "api_check", key, d, { notDone: !c.notDone, done: false, note: v }, c.notDone ? "" : `못 했어요: ${it.title}\n${v}`, "notdone");
+    await actAs(w, "api_check", key, d, v ? { notDone: !c.notDone, done: false, note: v } : { notDone: !c.notDone, done: false }, c.notDone ? (v ? `못 함 취소: ${it.title}\n${v}` : "") : `못 했어요: ${it.title}\n${v}`, c.notDone ? "chat" : "notdone");
   };
-  const start = stt === "wait" ? el("button", { class: "pbtn alt", type: "button", onclick: async e => { const w = who(); if (w === null) return; e.target.disabled = true; e.target.textContent = "저장 중…"; saved[key] = "시작으로 저장했어요"; await actAs(w, "api_check", key, d, { working: true }, "시작: " + it.title, "att"); } }, "시작") : null;
-  card.append(...[ta, pickRow, el("div", { class: "acts" }, start, done, nd, by, need)].filter(Boolean));
+  const start = stt === "wait" ? el("button", { class: "pbtn alt", type: "button", onclick: async e => { const w = who(); if (w === null) return; e.target.disabled = true; e.target.textContent = "저장 중…"; saved[key] = "시작으로 저장했어요"; const v = ta.value.trim(); delete drafts[key]; await actAs(w, "api_check", key, d, v ? { working: true, note: v } : { working: true }, "시작: " + it.title + (v ? "\n" + v : ""), "att"); } }, "시작") : null;
+  const ask = el("button", { class: "ebtn", type: "button", onclick: async () => {
+    const v = ta.value.trim();
+    if (!v) { need.textContent = "먼저 위 칸에 질문을 적어 주세요"; ta.focus(); return; }
+    const w = who(); if (w === null) return;
+    ask.disabled = true; delete drafts[key]; saved[key] = "질문을 보냈어요. 대화방에서 답을 볼 수 있어요";
+    await actAs(w, "api_send", `[${it.title}] ${v}`, "ask");
+  } }, "질문 보내기");
+  card.append(...[ta, pickRow, el("div", { class: "acts" }, start, done, nd, ask, by, need)].filter(Boolean));
   return card;
 }
 /* 이번 주 마감 체크: 그 주(월~일) 일을 날짜별로, 체크 줄만 모아서 */
