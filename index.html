@@ -36,6 +36,11 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-
 .top .me { font-size: 0.82rem; color: var(--fg); }
 .tbtn { position: relative; border: 1px solid var(--line); background: #fff; color: var(--fg); border-radius: 999px; padding: 5px 13px; font-size: 0.88rem; font-weight: 600; }
 .cnt { position: absolute; top: -6px; right: -6px; min-width: 19px; height: 19px; padding: 0 5px; border-radius: 999px; background: var(--warn); color: #fff; font-size: 0.72rem; line-height: 19px; text-align: center; }
+.prog { display: grid; gap: 3px; padding: 8px 14px; background: var(--mint-soft); border-bottom: 1px solid var(--line); font-size: 0.9rem; }
+.prog .r { display: flex; gap: 8px; align-items: baseline; }
+.prog .r b { flex: none; color: var(--accent); min-width: 2.2em; }
+.prog .r span { white-space: pre-wrap; overflow-wrap: anywhere; }
+.prog .h { display: flex; justify-content: space-between; align-items: center; font-size: 0.78rem; color: var(--muted); }
 .attbar { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; padding: 8px 14px; background: var(--board); color: var(--chalk-text); font-size: 0.9rem; border-bottom: 1px solid var(--line); }
 .attbar b { font-variant-numeric: tabular-nums; color: var(--plum); }
 .attbar .warn { flex-basis: 100%; color: var(--warn); font-weight: 700; font-size: 0.85rem; }
@@ -270,7 +275,7 @@ function render() {
   const nav = el("div", { class: "nav", role: "tablist" }, ...navs.map(([v, label, n]) =>
     el("button", { type: "button", role: "tab", "aria-selected": String(view === v), onclick: () => { view = v; sub = v === "boss" ? "ask" : "day"; filter = ""; render(); if (v === "chat") scrollEnd(); } },
       label, n ? el("span", { class: "cnt" }, String(n)) : null)));
-  const kids = [top];
+  const kids = [top, progBar()];
   if (!isOwner()) kids.push(attBar(st));
   kids.push(nav);
   if (view === "chat") kids.push(roomEl(), composer());
@@ -279,6 +284,19 @@ function render() {
   app.dataset.view = view;
   const sc = view === "chat" ? $(".room") : $(".page");
   if (keep != null && was === view && sc) sc.scrollTop = keep;
+}
+/* 맨 위 「진도」: 고1, 고2가 지금 나가야 하는 진도. 원장님만 「고치기」 */
+function progBar() {
+  const p = S.progress || {};
+  const edit = isOwner() ? el("button", { class: "copy", type: "button", onclick: async () => {
+    const g1 = prompt("고1 진도", p.g1 || ""); if (g1 == null) return;
+    const g2 = prompt("고2 진도", p.g2 || ""); if (g2 == null) return;
+    await act("api_setProgress", g1.trim(), g2.trim());
+  } }, "고치기") : null;
+  return el("div", { class: "prog", "aria-label": "진도" },
+    el("div", { class: "h" }, el("span", {}, "이번에 나갈 진도" + (p.at ? ` (${p.at})` : "")), edit),
+    el("div", { class: "r" }, el("b", {}, "고1"), el("span", {}, p.g1 || "아직 안 정했어요")),
+    el("div", { class: "r" }, el("b", {}, "고2"), el("span", {}, p.g2 || "아직 안 정했어요")));
 }
 function menu() {
   const a = prompt("메뉴: 1 로그아웃, 2 내 비밀번호 바꾸기", "");
