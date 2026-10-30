@@ -175,26 +175,22 @@ const dur = m => m < 60 ? `${m}분` : `${Math.floor(m / 60)}시간` + (m % 60 ? 
 const won = n => Math.round(n).toLocaleString("ko-KR") + "원";
 const addDays = (s, n) => { const d = dateOf(s); d.setDate(d.getDate() + n); return ymd(d.getTime()); };
 const isOwner = () => S && S.owner;
-const mine = it => isOwner() || !it.who || it.who === "함께" || String(it.who).split(",").includes(S.me);
+const mine = it => isOwner() || (S && S.me === "조교") || !it.who || it.who === "함께" || String(it.who).split(",").includes(S.me);
 const dayOf = s => DAY[dateOf(s).getDay()];
 async function call(fn, ...args) {
   try { const r = await R(fn, tk(), ...args); if (r && r.error) { alert(r.error); return null; } return r; }
-  catch (e) { const em = String(e && e.message || e); if (em.includes("LOGIN")) { logout(); return null; } if (em.includes("WHO")) { pickWho(); return null; } alert("저장하지 못했어요. 인터넷을 확인하고 다시 눌러 주세요."); return null; }
+  catch (e) { const em = String(e && e.message || e); if (em.includes("LOGIN")) { logout(); return null; } alert("저장하지 못했어요. 인터넷을 확인하고 다시 눌러 주세요."); return null; }
 }
 
 /* ---------- 로그인 ---------- */
-function logout() { token = null; store.set("aide-token", null); store.set("aide-as", null); S = null; showLogin(); }
-/* 조교 계정 하나를 같이 써요. 이 폰에서 지금 누가 쓰는지 골라 두면, 체크와 대화와 출퇴근에 그 이름이 남아요 */
-let asName = store.get("aide-as") || "";
+function logout() { token = null; store.set("aide-token", null); S = null; showLogin(); }
+/* 조교 계정 하나를 같이 써요. 할 일, 출퇴근을 누를 때만 누가 했는지 이름을 붙여 보내요 */
+let asName = "";
 const tk = () => token + (asName ? "|" + asName : "");
-async function pickWho() {
-  let people = []; try { people = await R("api_people"); } catch (e) {}
-  const ws = ((people.find(p => p.workers) || {}).workers) || ["정민영", "신지혜"];
-  $("#app").replaceChildren(el("div", { class: "login" }, el("h1", {}, "누구예요?"),
-    el("div", { class: "hint" }, "고른 이름으로 할 일 체크, 대화, 출퇴근이 남아요. 위쪽 이름을 누르면 바꿀 수 있어요."),
-    el("div", { class: "names" }, ...ws.map(n => el("button", { type: "button", onclick: () => { asName = n; store.set("aide-as", n); S = null; start(); } }, n))),
-    el("button", { class: "back", type: "button", onclick: logout }, "← 로그아웃")));
-}
+async function callAs(name, fn, ...args) { asName = name || ""; try { return await call(fn, ...args); } finally { asName = ""; } }
+async function actAs(name, fn, ...args) { busy = true; const r = await callAs(name, fn, ...args); busy = false; if (r) await load(); return r; }
+const shared = () => S && S.me === "조교";
+const doers = {};
 async function showLogin(picked, msg, setting) {
   const app = $("#app");
   if (!picked) {
@@ -219,7 +215,7 @@ async function showLogin(picked, msg, setting) {
     if (r.needSet) return showLogin(picked, "", true);
     if (r.error) { err.textContent = r.error; return; }
     token = r.token; store.set("aide-token", token);
-    if (r.name === "조교") { asName = ""; store.set("aide-as", null); pickWho(); } else start();
+    start();
   };
   a.onkeydown = e => { if (e.key === "Enter") go.click(); };
   app.replaceChildren(el("div", { class: "login" }, el("h1", {}, picked),
@@ -259,7 +255,7 @@ async function act(fn, ...args) { busy = true; const r = await call(fn, ...args)
 function dayData(d) { return (S.days || []).find(x => x.date === d) || { date: d, items: [], moves: [], note: "" }; }
 function myKeys(d, name) {
   const day = dayData(d);
-  const items = day.items.filter(it => !it.who || it.who === "함께" || String(it.who).split(",").includes(name));
+  const items = day.items.filter(it => name === "조교" || !it.who || it.who === "함께" || String(it.who).split(",").includes(name));
   const keys = items.map(it => `${d}_${it.id}`);
   const rl = ((S.routine[name] || {})[dayOf(d)] || []).map((_, i) => `${d}_routine_${name}_${i}`);
   return keys.concat(rl);
@@ -281,7 +277,7 @@ function render() {
   const st = isOwner() ? null : stats(S.today, S.me);
   if (view === "chat" && S.messages.length) store.set("aide-seen", String(Math.max(...S.messages.map(m => m.id))));
   const unread = view === "chat" ? 0 : S.messages.filter(m => m.id > seen() && m.name !== S.me).length;
-  const top = el("div", { class: "top" }, el("h1", {}, "날개달기 조교방"), isOwner() ? el("span", { class: "me" }, S.me) : el("button", { class: "tbtn", type: "button", "aria-label": "쓰는 사람 바꾸기", onclick: pickWho }, S.me + " ▾"),
+  const top = el("div", { class: "top" }, el("h1", {}, "날개달기 조교방"), el("span", { class: "me" }, S.me),
     el("button", { class: "tbtn", type: "button", "aria-label": "메뉴", onclick: menu }, "⋯"));
   const navs = [["home", "할 일", st && st.none], ["chat", "대화방", unread]];
   if (isOwner()) navs.push(["boss", "원장님", S.asks]);
@@ -346,6 +342,12 @@ function composer() {
 }
 /* 출근, 퇴근: 퇴근할 때 보고 안 한 일이 있으면 한 번 막고, 오늘 쉬는 시간을 골라야 기록된다 */
 function attBar(st) {
+  if (shared()) return el("div", { class: "attbar" }, ...(S.atts || []).map(a => el("span", { class: "tags" }, el("b", {}, a.name),
+    !a.inAt ? el("button", { class: "pbtn", type: "button", onclick: e => { e.target.disabled = true; actAs(a.name, "api_att", "in", 0, ""); } }, "출근")
+    : a.outAt ? el("span", {}, `${hm(a.inAt)}~${hm(a.outAt)}`)
+    : [el("span", {}, "출근 " + hm(a.inAt)), el("button", { class: "pbtn alt", type: "button", onclick: e => {
+        const b = prompt(`${a.name} 오늘 쉬는 시간(분)을 숫자로 넣어 주세요. 안 쉬었으면 0`, "0"); if (b == null) return;
+        e.target.disabled = true; actAs(a.name, "api_att", "out", Math.max(0, parseInt(b, 10) || 0), ""); } }, "퇴근")])));
   const a = S.att, kids = [el("span", {}, "오늘")];
   if (!a) kids.push(el("button", { class: "pbtn", type: "button", onclick: e => { e.target.disabled = true; act("api_att", "in", 0, ""); } }, "출근"));
   else {
@@ -406,7 +408,7 @@ function dayEl(d) {
   if (day.moves.length) out.push(el("section", { class: "card mv" },
     el("h3", {}, "출결 변동 (출결 체크 전에 꼭 보기)", el("span", { class: "n" }, `${day.moves.filter((_, i) => c[`${d}_mv_${i}`] && c[`${d}_mv_${i}`].done).length} / ${day.moves.length} 확인`)),
     ...day.moves.map((m, i) => check(`${d}_mv_${i}`, d, el("span", { class: c[`${d}_mv_${i}`] && c[`${d}_mv_${i}`].done ? "x" : null }, (m.cls ? `[${m.cls}] ` : "") + m.text)))));
-  for (const name of isOwner() ? Object.keys(S.routine) : [S.me]) {
+  for (const name of isOwner() || shared() ? Object.keys(S.routine) : [S.me]) {
     const list = (S.routine[name] || {})[dayOf(d)] || [];
     if (!list.length) continue;
     out.push(el("section", { class: "card" }, el("h3", {}, `${name} 늘 하는 일 (${dayOf(d)}요일)`),
@@ -456,22 +458,34 @@ function itemEl(d, it) {
   const ta = el("textarea", { class: "memo", placeholder: it.report ? `보고할 것: ${it.report}` : "남길 말. 못 했으면 왜 못 했는지와 대신 한 것" , "aria-label": "남길 말" });
   ta.value = drafts[key] != null ? drafts[key] : c.note || ""; ta.oninput = () => { drafts[key] = ta.value; };
   const need = el("span", { class: "need" });
+  /* 조교 계정: 이 일을 누가 했는지 고르기(완료, 못 했어요, 시작에 그 이름이 남아요) */
+  const ws = S.workers || [];
+  if (doers[key] == null && ws.includes(c.by)) doers[key] = c.by;
+  const pickRow = shared() ? el("div", { class: "acts" }, el("span", { class: "hint" }, "누가 했나요"),
+    ...ws.map(n => el("button", { class: "chip", type: "button", "aria-pressed": String(doers[key] === n), onclick: async () => {
+      doers[key] = n; need.textContent = "";
+      if (c.done || c.notDone || c.working) await actAs(n, "api_check", key, d, {}, "", "done"); else render();
+    } }, n))) : null;
+  const by = !shared() && c.by && (c.done || c.notDone || c.working) ? el("span", { class: "badge" }, "한 사람 " + c.by) : null;
+  const who = () => { if (!shared()) return ""; if (!doers[key]) { need.textContent = "먼저 누가 했는지 이름을 골라 주세요"; return null; } return doers[key]; };
   const done = el("button", { class: "pbtn", type: "button" }, c.done ? "완료 취소" : "완료");
   const nd = el("button", { class: "pbtn alt", type: "button" }, c.notDone ? "못 함 취소" : "못 했어요");
   done.onclick = async () => {
     const v = ta.value.trim();
     if (!c.done && it.report && !v) { need.textContent = `먼저 위 칸에 ${it.report}을 적어 주세요`; ta.focus(); return; }
+    const w = who(); if (w === null) return;
     done.disabled = true; delete drafts[key];
-    await act("api_check", key, d, { done: !c.done, note: v }, (c.done ? "완료 취소: " : "완료: ") + it.title + (!c.done && v ? "\n" + v : ""), c.done ? "chat" : "done");
+    await actAs(w, "api_check", key, d, { done: !c.done, note: v }, (c.done ? "완료 취소: " : "완료: ") + it.title + (!c.done && v ? "\n" + v : ""), c.done ? "chat" : "done");
   };
   nd.onclick = async () => {
     const v = ta.value.trim();
     if (!c.notDone && !v) { need.textContent = "먼저 위 칸에 왜 못 했는지와 대신 한 것을 적어 주세요"; ta.focus(); return; }
+    const w = who(); if (w === null) return;
     nd.disabled = true; delete drafts[key];
-    await act("api_check", key, d, { notDone: !c.notDone, done: false, note: v }, c.notDone ? "" : `못 했어요: ${it.title}\n${v}`, "notdone");
+    await actAs(w, "api_check", key, d, { notDone: !c.notDone, done: false, note: v }, c.notDone ? "" : `못 했어요: ${it.title}\n${v}`, "notdone");
   };
-  const start = stt === "wait" ? el("button", { class: "pbtn alt", type: "button", onclick: async e => { e.target.disabled = true; await act("api_check", key, d, { working: true }, "시작: " + it.title, "att"); } }, "시작") : null;
-  card.append(ta, el("div", { class: "acts" }, start, done, nd, need));
+  const start = stt === "wait" ? el("button", { class: "pbtn alt", type: "button", onclick: async e => { const w = who(); if (w === null) return; e.target.disabled = true; await actAs(w, "api_check", key, d, { working: true }, "시작: " + it.title, "att"); } }, "시작") : null;
+  card.append(ta, pickRow, el("div", { class: "acts" }, start, done, nd, by, need));
   return card;
 }
 /* 이번 주 마감 체크: 그 주(월~일) 일을 날짜별로, 체크 줄만 모아서 */
