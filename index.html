@@ -346,13 +346,28 @@ function composer() {
   return el("div", { class: "comp" }, chip, el("div", { class: "row" }, ta, send));
 }
 /* 출근, 퇴근: 퇴근할 때 보고 안 한 일이 있으면 한 번 막고, 오늘 쉬는 시간을 골라야 기록된다 */
+/* 출근, 퇴근 시각 넣기: 지금 시각이 미리 들어 있어요. 14:05처럼 고쳐 넣을 수 있어요 */
+function askTime(label) {
+  for (let v = hm(Date.now()); ;) {
+    v = prompt(`${label}을 넣어 주세요 (예: 14:05)`, v);
+    if (v == null) return null;
+    v = v.trim().replace(/[.\s시]+/g, ":").replace(/분$/, "").replace(/:$/, "");
+    if (/^\d{3,4}$/.test(v)) v = v.slice(0, -2) + ":" + v.slice(-2);
+    const m = /^(\d{1,2}):(\d{1,2})$/.exec(v);
+    if (m && +m[1] < 24 && +m[2] < 60) return p2(+m[1]) + ":" + p2(+m[2]);
+    alert("14:05처럼 넣어 주세요");
+  }
+}
 function attBar(st) {
   if (shared()) return el("div", { class: "attbar" }, ...(S.atts || []).map(a => el("span", { class: "tags" }, el("b", {}, a.name),
-    !a.inAt ? el("button", { class: "pbtn", type: "button", onclick: e => { e.target.disabled = true; actAs(a.name, "api_att", "in", 0, ""); } }, "출근")
+    !a.inAt ? el("button", { class: "pbtn", type: "button", onclick: e => {
+        const t = askTime(`${a.name} 출근 시각`); if (t == null) return;
+        e.target.disabled = true; actAs(a.name, "api_att", "in", 0, "", t); } }, "출근")
     : a.outAt ? el("span", {}, `${hm(a.inAt)}~${hm(a.outAt)}`)
     : [el("span", {}, "출근 " + hm(a.inAt)), el("button", { class: "pbtn alt", type: "button", onclick: e => {
+        const t = askTime(`${a.name} 퇴근 시각`); if (t == null) return;
         const b = prompt(`${a.name} 오늘 쉬는 시간(분)을 숫자로 넣어 주세요. 안 쉬었으면 0`, "0"); if (b == null) return;
-        e.target.disabled = true; actAs(a.name, "api_att", "out", Math.max(0, parseInt(b, 10) || 0), ""); } }, "퇴근")])));
+        e.target.disabled = true; actAs(a.name, "api_att", "out", Math.max(0, parseInt(b, 10) || 0), "", t); } }, "퇴근")])));
   const a = S.att, kids = [el("span", {}, "오늘")];
   if (!a) kids.push(el("button", { class: "pbtn", type: "button", onclick: e => { e.target.disabled = true; act("api_att", "in", 0, ""); } }, "출근"));
   else {
