@@ -69,9 +69,15 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-
 .pill.work { background: #fff; border: 1px solid var(--accent); color: var(--accent); }
 .pill.done { background: #fff; border: 1px solid var(--line); color: var(--muted); }
 .pill.need { background: var(--accent-soft); color: var(--accent); }
-.card.done { }
+.card.done { background: var(--soft); }
+.card.done h3 > span:first-child { color: var(--muted); text-decoration: line-through; }
 .card.need { border-color: var(--accent); }
-.card.work { }
+.card.work { border-color: var(--accent); border-width: 2px; }
+.pill.done { background: var(--accent); color: #fff; border: 0; }
+.stline { font-size: 0.88rem; font-weight: 700; color: var(--accent); background: var(--accent-soft); border-radius: 8px; padding: 6px 10px; }
+.stline.wait { background: #fff; border: 1px dashed var(--line); color: var(--muted); font-weight: 400; }
+.saved { font-size: 0.82rem; color: var(--accent); font-weight: 700; }
+.ebtn { border: 1px solid var(--line); background: #fff; border-radius: 8px; padding: 2px 8px; font-size: 0.75rem; color: var(--muted); }
 .room { flex: 1; overflow-y: auto; padding: 10px 12px 16px; display: flex; flex-direction: column; gap: 6px; background-color: var(--room); }
 .day { align-self: center; background: #fff; border: 1px solid var(--line); color: var(--muted); font-size: 0.78rem; padding: 3px 12px; border-radius: 999px; margin: 8px 0 4px; }
 .m { display: flex; gap: 6px; align-items: flex-end; max-width: 86%; }
@@ -188,9 +194,18 @@ function logout() { token = null; store.set("aide-token", null); S = null; showL
 let asName = "";
 const tk = () => token + (asName ? "|" + asName : "");
 async function callAs(name, fn, ...args) { asName = name || ""; try { return await call(fn, ...args); } finally { asName = ""; } }
-async function actAs(name, fn, ...args) { busy = true; const r = await callAs(name, fn, ...args); busy = false; if (r) await load(); return r; }
+async function actAs(name, fn, ...args) { busy = true; const r = await callAs(name, fn, ...args); busy = false; if (r) await load(); else { for (const k in saved) delete saved[k]; render(); } return r; }
 const shared = () => S && S.me === "조교";
-const doers = {};
+const doers = {}, saved = {};
+/* 할 일 고치기: 이름 바꾸기, 비우면 지우기 */
+async function editTask(d, it) {
+  const v = prompt("할 일 이름을 고쳐 주세요.\n지우려면 칸을 비우고 확인을 눌러요.", it.title || "");
+  if (v === null) return;
+  const t = v.trim();
+  if (t === (it.title || "").trim()) return;
+  if (!t) { if (confirm("「" + it.title + "」 일을 지울까요?")) await act("api_editTask", d, it.id, "", true); return; }
+  await act("api_editTask", d, it.id, t, false);
+}
 async function showLogin(picked, msg, setting) {
   const app = $("#app");
   if (!picked) {
@@ -463,7 +478,13 @@ function itemEl(d, it) {
   const stt = statusOf(d, it);
   const card = el("section", { class: "card " + stt },
     el("h3", {}, el("span", {}, it.title || ""), el("span", { class: "tags" }, el("span", { class: "pill " + stt }, ST[stt]),
-      it.who ? el("span", { class: "badge" }, "담당 " + it.who) : it.kind === "extra" ? el("span", { class: "badge" }, "더한 일") : null)));
+      it.who ? el("span", { class: "badge" }, "담당 " + it.who) : it.kind === "extra" ? el("span", { class: "badge" }, "더한 일") : null,
+      el("button", { class: "ebtn", type: "button", onclick: () => editTask(d, it) }, "고치기"))));
+  /* 10-30 「눌렀을 때 명확하지 않음」: 지금 상태를 글 한 줄로 크게 */
+  const whoAt = (c.by ? c.by + " " : "") + (c.at ? hm(c.at) : "");
+  card.append(el("div", { class: "stline " + stt }, stt === "done" ? `완료했어요 (${whoAt})` : stt === "need" ? `못 했어요 (${whoAt})` + (c.note ? " · " + c.note : "")
+    : stt === "work" ? `하는 중이에요 (${whoAt} 시작)` : "아직 시작 안 함. 시작할 때 「시작」, 끝나면 「완료」를 눌러요"));
+  if (saved[key]) { card.append(el("div", { class: "saved" }, saved[key])); delete saved[key]; }
   for (const f of it.fields || []) {
     const tx = el("div", { class: "tx" }, f.text || "");
     const b = el("button", { class: "copy", type: "button", onclick: () => { navigator.clipboard && navigator.clipboard.writeText(f.text || "").then(() => { b.textContent = "복사됨"; }); } }, "복사");
@@ -488,23 +509,23 @@ function itemEl(d, it) {
     } }, n))) : null;
   const by = !shared() && c.by && (c.done || c.notDone || c.working) ? el("span", { class: "badge" }, "한 사람 " + c.by) : null;
   const who = () => { if (!shared()) return ""; if (!doers[key]) { need.textContent = "먼저 누가 했는지 이름을 골라 주세요"; return null; } return doers[key]; };
-  const done = el("button", { class: "pbtn", type: "button" }, c.done ? "완료 취소" : "완료");
-  const nd = el("button", { class: "pbtn alt", type: "button" }, c.notDone ? "못 함 취소" : "못 했어요");
+  const done = el("button", { class: "pbtn", type: "button" }, c.done ? "완료 되돌리기" : "완료");
+  const nd = el("button", { class: "pbtn alt", type: "button" }, c.notDone ? "못 함 되돌리기" : "못 했어요");
   done.onclick = async () => {
     const v = ta.value.trim();
     if (!c.done && it.report && !v) { need.textContent = `먼저 위 칸에 ${it.report}을 적어 주세요`; ta.focus(); return; }
     const w = who(); if (w === null) return;
-    done.disabled = true; delete drafts[key];
+    done.disabled = true; done.textContent = "저장 중…"; delete drafts[key]; saved[key] = c.done ? "완료를 되돌렸어요" : "완료로 저장했어요";
     await actAs(w, "api_check", key, d, { done: !c.done, note: v }, (c.done ? "완료 취소: " : "완료: ") + it.title + (!c.done && v ? "\n" + v : ""), c.done ? "chat" : "done");
   };
   nd.onclick = async () => {
     const v = ta.value.trim();
     if (!c.notDone && !v) { need.textContent = "먼저 위 칸에 왜 못 했는지와 대신 한 것을 적어 주세요"; ta.focus(); return; }
     const w = who(); if (w === null) return;
-    nd.disabled = true; delete drafts[key];
+    nd.disabled = true; nd.textContent = "저장 중…"; delete drafts[key]; saved[key] = c.notDone ? "못 함을 되돌렸어요" : "못 했어요로 저장했어요";
     await actAs(w, "api_check", key, d, { notDone: !c.notDone, done: false, note: v }, c.notDone ? "" : `못 했어요: ${it.title}\n${v}`, "notdone");
   };
-  const start = stt === "wait" ? el("button", { class: "pbtn alt", type: "button", onclick: async e => { const w = who(); if (w === null) return; e.target.disabled = true; await actAs(w, "api_check", key, d, { working: true }, "시작: " + it.title, "att"); } }, "시작") : null;
+  const start = stt === "wait" ? el("button", { class: "pbtn alt", type: "button", onclick: async e => { const w = who(); if (w === null) return; e.target.disabled = true; e.target.textContent = "저장 중…"; saved[key] = "시작으로 저장했어요"; await actAs(w, "api_check", key, d, { working: true }, "시작: " + it.title, "att"); } }, "시작") : null;
   card.append(ta, pickRow, el("div", { class: "acts" }, start, done, nd, by, need));
   return card;
 }
