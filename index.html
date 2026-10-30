@@ -468,7 +468,7 @@ function dayEl(d) {
           const v = ta.value.trim();
           if (box.checked && !v) { box.checked = false; ta.placeholder = "먼저 적어 주세요: " + r.report; ta.focus(); return; }
           box.disabled = true; delete drafts[key];
-          await act("api_check", key, d, { done: box.checked, note: v }, box.checked ? `${r.text}\n${v}` : "", /^없음/.test(v) ? "done" : "ask");
+          await actAs(shared() && (S.workers || []).includes(name) ? name : "", "api_check", key, d, { done: box.checked, note: v }, box.checked ? `${r.text}\n${v}` : "", /^없음/.test(v) ? "done" : "ask");
         };
         return el("div", {}, el("label", { class: "ln", for: "k-" + key }, box, el("span", { class: "tm" }, r.time || ""), el("span", { class: k && k.done ? "x" : null }, r.text)), ta);
       })));
