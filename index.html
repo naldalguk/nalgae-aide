@@ -116,6 +116,12 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-
 .card h3 { margin: 0; font-size: 0.98rem; display: flex; gap: 8px; align-items: baseline; justify-content: space-between; flex-wrap: wrap; }
 .card h3 .n { font-size: 0.8rem; color: var(--muted); font-weight: 500; }
 .badge { font-size: 0.72rem; padding: 1px 8px; border-radius: 999px; border: 1px solid var(--line); color: var(--muted); font-weight: 600; white-space: nowrap; }
+.tnotes { display: grid; gap: 6px; }
+.tnote { background: var(--soft); border: 1px solid var(--line); border-radius: 10px; padding: 8px 12px; display: grid; gap: 4px; min-width: 0; }
+.tnote .hd { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; font-size: 0.78rem; color: var(--muted); }
+.tnote .hd b { color: var(--fg); }
+.tnote .hd .sp { flex: 1; }
+.tnote .tx { font-size: 0.9rem; white-space: pre-wrap; overflow-wrap: anywhere; }
 .note { background: var(--soft); border: 1px solid var(--line); border-radius: 10px; padding: 9px 12px; font-size: 0.9rem; white-space: pre-wrap; }
 details.rules { background: var(--soft); border: 1px solid var(--line); border-radius: 10px; padding: 8px 12px; font-size: 0.86rem; white-space: pre-wrap; }
 details.rules summary { font-weight: 700; cursor: pointer; }
@@ -211,6 +217,31 @@ async function editTask(d, it) {
   if (t === (it.title || "").trim()) return;
   if (!t) return delTask(d, it);
   await act("api_editTask", d, it.id, t, false);
+}
+/* 할 일 아래 글: 쓴 사람과 원장님만 고치기, 지우기. 조교 계정은 쓴 조교 이름으로 보낸다 */
+let noteEdit = null;
+const noteWhen = t => { const d = new Date(t); return `${d.getMonth() + 1}/${d.getDate()} ${hm(t)}`; };
+function noteEl(n) {
+  const can = isOwner() || n.name === S.me || (shared() && (S.workers || []).includes(n.name));
+  const as = shared() ? n.name : "";
+  if (noteEdit && noteEdit.id === n.id) {
+    const ta = el("textarea", { class: "memo", "aria-label": "글 고치기" });
+    ta.value = noteEdit.text; ta.oninput = () => { noteEdit.text = ta.value; };
+    const ok = el("button", { class: "pbtn", type: "button", onclick: async () => {
+      const t = ta.value.trim();
+      if (!t) { ta.focus(); return; }
+      ok.disabled = true; ok.textContent = "저장 중…";
+      const r = await actAs(as, "api_editNote", n.id, t, false);
+      if (r) { noteEdit = null; render(); } else { ok.disabled = false; ok.textContent = "저장"; }
+    } }, "저장");
+    return el("div", { class: "tnote" }, el("div", { class: "hd" }, el("b", {}, n.name), noteWhen(n.id)), ta,
+      el("div", { class: "acts" }, ok, el("button", { class: "ebtn", type: "button", onclick: () => { noteEdit = null; render(); } }, "그만두기")));
+  }
+  return el("div", { class: "tnote" },
+    el("div", { class: "hd" }, el("b", {}, n.name), noteWhen(n.id), n.edited ? "(고침)" : null, el("span", { class: "sp" }),
+      can ? el("button", { class: "ebtn", type: "button", onclick: () => { noteEdit = { id: n.id, text: n.text }; render(); } }, "고치기") : null,
+      can ? el("button", { class: "ebtn", type: "button", onclick: async () => { if (confirm("이 글을 지울까요?")) await actAs(as, "api_editNote", n.id, "", true); } }, "지우기") : null),
+    el("div", { class: "tx" }, n.text));
 }
 async function delTask(d, it) { if (confirm("「" + it.title + "」 일을 지울까요?")) await act("api_editTask", d, it.id, "", true); }
 async function showLogin(picked, msg, setting) {
@@ -509,9 +540,11 @@ function itemEl(d, it) {
   if (it.ifStuck) card.append(el("div", { class: "note" }, "막히면: " + it.ifStuck));
   /* 10-31 원장님 「어떤 버튼을 눌러도 그 아래 질문을 하거나 어떻게 작업했는지 보고하는 칸은 늘 있어야 해」:
      칸은 늘 비어 있는 새 글 칸. 시작, 완료, 못 했어요 어느 버튼이든 적은 글이 같이 올라가고, 「질문 보내기」는 상태를 안 바꾸고 글만 보낸다 */
-  const ta = el("textarea", { class: "memo", placeholder: (it.report ? `보고할 것: ${it.report}. ` : "") + "질문이나 어떻게 했는지 적어요. 어떤 버튼을 눌러도 같이 올라가요", "aria-label": "질문, 보고" });
+  const ta = el("textarea", { class: "memo", placeholder: (it.report ? `보고할 것: ${it.report}. ` : "") + "질문이나 어떻게 했는지 적어요. 어떤 버튼을 눌러도 이 일 아래에 남아요", "aria-label": "질문, 보고" });
   ta.value = drafts[key] || ""; ta.oninput = () => { drafts[key] = ta.value; };
-  if (c.note && stt !== "need") card.append(el("div", { class: "note" }, "남긴 말: " + c.note));
+  const notes = (S.notes || {})[key] || [];
+  if (notes.length) card.append(el("div", { class: "tnotes" }, ...notes.map(noteEl)));
+  else if (c.note && stt !== "need") card.append(el("div", { class: "note" }, "남긴 말: " + c.note));   // 글 칸을 만들기 전에 남긴 말
   card.append(el("div", { class: "hint" }, "질문, 보고"));
   const need = el("span", { class: "need" });
   /* 조교 계정: 이 일을 누가 했는지 고르기(완료, 못 했어요, 시작에 그 이름이 남아요) */
@@ -545,10 +578,17 @@ function itemEl(d, it) {
     const v = ta.value.trim();
     if (!v) { need.textContent = "먼저 위 칸에 질문을 적어 주세요"; ta.focus(); return; }
     const w = who(); if (w === null) return;
-    ask.disabled = true; delete drafts[key]; saved[key] = "질문을 보냈어요. 대화방에서 답을 볼 수 있어요";
-    await actAs(w, "api_send", `[${it.title}] ${v}`, "ask");
+    ask.disabled = true; delete drafts[key]; saved[key] = "질문을 보냈어요. 원장님 확인 부탁에도 떠요";
+    await actAs(w, "api_addNote", key, d, v, it.title);
   } }, "질문 보내기");
-  card.append(...[ta, pickRow, el("div", { class: "acts" }, start, done, nd, ask, by, need)].filter(Boolean));
+  const add = el("button", { class: "ebtn", type: "button", onclick: async () => {
+    const v = ta.value.trim();
+    if (!v) { need.textContent = "먼저 위 칸에 글을 적어 주세요"; ta.focus(); return; }
+    const w = who(); if (w === null) return;
+    add.disabled = true; delete drafts[key]; saved[key] = "글을 남겼어요";
+    await actAs(w, "api_addNote", key, d, v, "");
+  } }, "글 남기기");
+  card.append(...[ta, pickRow, el("div", { class: "acts" }, start, done, nd, add, ask, by, need)].filter(Boolean));
   return card;
 }
 /* 이번 주 마감 체크: 그 주(월~일) 일을 날짜별로, 체크 줄만 모아서 */
